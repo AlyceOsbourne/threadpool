@@ -127,7 +127,7 @@ fn main() {
     );
 }
 ```
-
+The function call will be ran in the thread. 
 ---
 
 I mostly created as another ADHD endeavour, so, I hope it is at least useful to someone.
