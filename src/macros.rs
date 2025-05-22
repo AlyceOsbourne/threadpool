@@ -46,7 +46,7 @@ macro_rules! thread_pool {
     // Spawns unnamed tasks using default pool size; ignores task names, just runs them and unpacks.
     ($($body:expr),+ $(,)?) => {
         let _size = std::thread::available_parallelism().unwrap().get();
-        $crate::thread_pool!(@internal _pool, _size, true, $( __ => $body ),+);
+        $crate::thread_pool!(@internal? _pool, _size, true, $( __ => $body ),+);
     };
 
     // Handles completely empty macro invocation.
