@@ -8,42 +8,42 @@ macro_rules! thread_pool {
 
     // Spawns tasks into a named thread pool without auto-unpacking and without running immediately.
     (@spawn, $name:ident, $size:expr, { $( $task_name:ident => $body:expr ),+ $(,)? }) => {
-        $crate::thread_pool!(@internal $name, $size, false, $( $task_name => $body ),+);
+        $crate::thread_pool!(@internal? $name, $size, false, $( $task_name => $body ),+);
     };
 
     // Spawns tasks and unpacks their results, but doesn't run automatically.
     (@spawn?, $name:ident, $size:expr, { $( $task_name:ident => $body:expr ),+ $(,)? }) => {
-        $crate::thread_pool!(@internal? $name, $size, false, $( $task_name => $body ),+);
+        $crate::thread_pool!(@internal $name, $size, false, $( $task_name => $body ),+);
     };
 
-    // Spawns tasks into a named pool and runs the thread pool immediately.
+    // Spawns tasks into a named pool and runs the thread pool immediately (no unpack).
     (@run, $name:ident, $size:expr, { $( $task_name:ident => $body:expr ),+ $(,)? }) => {
-        $crate::thread_pool!(@internal $name, $size, true, $( $task_name => $body ),+);
+        $crate::thread_pool!(@internal? $name, $size, true, $( $task_name => $body ),+);
     };
 
     // Spawns tasks, runs the pool immediately, and unpacks the results.
     (@run?, $name:ident, $size:expr, { $( $task_name:ident => $body:expr ),+ $(,)? }) => {
-        $crate::thread_pool!(@internal? $name, $size, true, $( $task_name => $body ),+);
+        $crate::thread_pool!(@internal $name, $size, true, $( $task_name => $body ),+);
     };
 
-    // Spawns tasks into an unnamed pool with a specified size, and runs immediately.
+    // Spawns tasks into an unnamed pool with a specified size, and runs immediately (no unpack).
     ($size:expr, { $( $task_name:ident => $body:expr ),+ $(,)? }) => {
-        $crate::thread_pool!(@internal _pool, $size, true, $( $task_name => $body ),+);
+        $crate::thread_pool!(@internal? _pool, $size, true, $( $task_name => $body ),+);
     };
 
-    // Spawns tasks using default thread pool size (based on available CPUs), and runs immediately.
+    // Spawns tasks using default thread pool size (based on available CPUs), and runs immediately, with unpack.
     ($( $task_name:ident => $body:expr ),+ $(,)?) => {
         let _size = std::thread::available_parallelism().unwrap().get();
         $crate::thread_pool!(@internal _pool, _size, true, $( $task_name => $body ),+);
     };
 
-    // Spawns tasks with default thread pool size, runs immediately, and unpacks the results.
+    // Spawns tasks with default thread pool size, runs immediately, and does NOT unpack the results.
     (?$( $task_name:ident => $body:expr ),+ $(,)?) => {
         let _size = std::thread::available_parallelism().unwrap().get();
         $crate::thread_pool!(@internal? _pool, _size, true, $( $task_name => $body ),+);
     };
 
-    // Spawns unnamed tasks using default pool size; ignores task names, just runs them.
+    // Spawns unnamed tasks using default pool size; ignores task names, just runs them and unpacks.
     ($($body:expr),+ $(,)?) => {
         let _size = std::thread::available_parallelism().unwrap().get();
         $crate::thread_pool!(@internal _pool, _size, true, $( __ => $body ),+);
@@ -61,12 +61,16 @@ macro_rules! thread_pool {
         if $run {
             $name.run();
         }
+        unpack!($($task_name),+);
     };
 
-    // Same as @internal, but also unpacks (i.e., joins) each task result.
+    // Same as @internal, but does NOT unpack results.
     (@internal? $name:ident, $size:expr, $run:expr, $( $task_name:ident => $body:expr ),+ ) => {
-        $crate::thread_pool!(@internal $name, $size, $run, $( $task_name => $body ),+);
-        unpack!($($task_name),+);
+        let $name = $crate::structs::ThreadPool::new($size);
+        $( let $task_name = $name.spawn(move || $body); )+
+        if $run {
+            $name.run();
+        }
     };
 }
 
@@ -91,8 +95,6 @@ macro_rules! sleep {
 macro_rules! unpack {
     // Awaits all spawned tasks by calling `.get()` on each.
     ($($promise:ident),+ $(,)?) => {
-        $(
-            let $promise = $promise.get();
-        )+
+        $( let $promise = $promise.get(); )+
     };
 }
