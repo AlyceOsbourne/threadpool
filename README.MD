@@ -17,13 +17,13 @@ fn main() {
     thread_pool! {
         task1 => {
             println!("[Task 1] Starting");
-            sleep!(1); // Assuming a sleep macro or similar exists
+            sleep!(1);
             println!("[Task 1] Finished");
             "Hello from task1!"
         },
         task2 => {
             println!("[Task 2] Starting");
-            sleep!(2); // Assuming a sleep macro or similar exists
+            sleep!(2);
             println!("[Task 2] Finished");
             "Hello from task2!"
         },
@@ -127,7 +127,7 @@ fn main() {
     );
 }
 ```
-
+The function call will be ran in the thread. 
 ---
 
 I mostly created as another ADHD endeavour, so, I hope it is at least useful to someone.
